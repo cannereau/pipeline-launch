@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Build a Lambda function able to launch a CodePipeline"
+
+Parameters:
+  Contact:
+    Type: "String"
+    Default: "cannereau"
+    Description: "Creator's username"
+  Application:
+    Type: "String"
+    Default: "Pipeline"
+    Description: "Application's name"
+
+Resources:
+
+  PipelineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "pipeline-launch"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Action: "sts:AssumeRole"
+          Principal:
+            Service: "lambda.amazonaws.com"
+      Policies:
+        - PolicyName: "lambda-default"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: "Allow"
+              Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              Resource:
+              - "arn:aws:logs:*:*:log-group:/aws/lambda/*"
+              - "arn:aws:logs:*:*:log-group:/aws/lambda/*:*"
+        - PolicyName: "run-pipeline"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: "Allow"
+              Action:
+              - "codepipeline:PutJobFailureResult"
+              - "codepipeline:PutJobSuccessResult"
+              - "codepipeline:StartPipelineExecution"
+              Resource: "*"
+
+  PipelineFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "pipeline-launch"
+      Description: "Lambda function able to launch a CodePipeline"
+      Handler: "pipeline.launch"
+      Runtime: "python3.7"
+      MemorySize: 128
+      Timeout: 3
+      Role: !GetAtt PipelineRole.Arn
+      Code:
+        ZipFile: "def launch(event, context):"
+      Tags:
+      -
+        Key: "Contact"
+        Value: !Ref Contact
+      -
+        Key: "Application"
+        Value: !Ref Application
